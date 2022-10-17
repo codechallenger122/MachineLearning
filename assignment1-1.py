@@ -189,7 +189,8 @@ for data in train_datasets:
     file.close()
     
 # ===============================================================
-# 8. pickle 형태로 저장된 data 를 불러와서, 파일 정보 확인하기.
+# 8. pickle 형태로 저장된 data 를 불러와서, training set, validation set, test set 만들기.
+#    각각의 set 은 class 별로 같은 양의 data 를 불러와서 구성한다.
 
 """ Generate train, test, validation sets
 Merge and prune(제거하다/가지치다) the training data as needed. 
@@ -201,6 +202,7 @@ The labels will be stored into a separate array of integers 0 through 9.
 Also create a validation dataset for hyperparameter tuning."""
 
 def make_arrays(nb_rows, img_size):
+    # dataset, lables 에 맞는 ndarray container 를 만들어 return.
     if nb_rows:
         dataset = np.ndarray((nb_rows, img_size, img_size), dtype=np.float32)
         labels = np.ndarray(nb_rows, dtype=np.int32)
@@ -209,11 +211,11 @@ def make_arrays(nb_rows, img_size):
     return dataset, labels
 
 def merge_datasets(pickle_files, train_size, valid_size=0):
-    num_classes = len(pickle_files)
-    valid_dataset, valid_labels = make_arrays(valid_size, image_size)
+    num_classes = len(pickle_files) # 10개.
+    valid_dataset, valid_labels = make_arrays(valid_size, image_size) # image_size = 28 
     train_dataset, train_labels = make_arrays(train_size, image_size)
     vsize_per_class = valid_size // num_classes
-    tsize_per_class = train_size // num_classes
+    tsize_per_class = train_size // num_classes # 만약 20만 / 10 = 2만.. 즉, class 당 2만개의 data 를 가져올 것임.
 
     start_v, start_t = 0, 0
     end_v, end_t = vsize_per_class, tsize_per_class
@@ -253,3 +255,75 @@ _, _, test_dataset, test_labels = merge_datasets(test_datasets, test_size)
 print('Training:', train_dataset.shape, train_labels.shape)
 print('Validation:', valid_dataset.shape, valid_labels.shape)
 print('Testing:', test_dataset.shape, test_labels.shape)
+
+"""
+<output>
+
+Training: (200000, 28, 28) (200000,)
+Validation: (10000, 28, 28) (10000,)
+Testing: (10000, 28, 28) (10000,)
+"""
+
+# ===============================================================
+# 9. 생성된 training, validation(dev), test set 을 random 하게 섞는다!
+
+#  Next, we'll randomize the data. 
+#  It's important to have the labels well shuffled for the training and test distributions to match.
+def randomize(dataset, labels):
+    permutation = np.random.permutation(labels.shape[0])
+    shuffled_dataset = dataset[permutation,:,:]
+    shuffled_labels = labels[permutation]
+    return shuffled_dataset, shuffled_labels
+
+train_dataset, train_labels = randomize(train_dataset, train_labels)
+test_dataset, test_labels = randomize(test_dataset, test_labels)
+valid_dataset, valid_labels = randomize(valid_dataset, valid_labels)
+
+# ===============================================================
+# 10. 섞은 data 를 visual 하게 check 하기.
+# Convince yourself that the data is still good after shuffling! 
+# Display one of the images and see if it's not distorted.
+
+images = train_dataset
+
+fig, axes = plt.subplots(3, 3)
+fig.subplots_adjust(hspace=0.3, wspace=0.3)
+for i, ax in enumerate(axes.flat):
+        # Plot image.
+    ax.imshow(images[i].reshape([28, 28]), cmap='binary')               
+        
+        # Remove ticks from the plot.
+    ax.set_xticks([])
+    ax.set_yticks([])
+        
+    # Ensure the plot is shown correctly with multiple plots
+    # in a single Notebook cell.
+plt.show()
+
+# ===============================================================
+# 11. (9)번 step 에서 만든 random 하게 shuffle 된 training, validation, test set 을 
+#      nonMNIST.pickle 파일로 저장한다.
+
+pickle_file = os.path.join(data_root, 'notMNIST.pickle')
+
+try:
+    f = open(pickle_file, 'wb')
+    save = {
+        'train_dataset': train_dataset,
+        'train_labels': train_labels,
+        'valid_dataset': valid_dataset,
+        'valid_labels': valid_labels,
+        'test_dataset': test_dataset,
+        'test_labels': test_labels,
+    }
+    pickle.dump(save, f, pickle.HIGHEST_PROTOCOL)
+    f.close()
+except Exception as e:
+    print('Unable to save data to', pickle_file, ':', e)
+    raise
+    
+# ===============================================================
+# 12. 저장한정보 확인하기.      
+
+statinfo = os.stat(pickle_file)
+print('Compressed pickle size:', statinfo.st_size)
