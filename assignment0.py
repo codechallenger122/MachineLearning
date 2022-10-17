@@ -61,3 +61,42 @@ mnist_test = dsets.MNIST(root='MNIST_data/',
                          transform=transforms.ToTensor(),
                          download=True)
 
+# =================================================
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+
+# 1. Network 정의.
+class Net(nn.Module):
+
+    def __init__(self):
+        super(Net, self).__init__()    # (1) constructor
+        self.linear = nn.Linear(10, 5) # (2) self.linear 정의 --> nn.Linear(input_size, output_size)
+
+    def forward(self, x):
+        x = self.linear(x) # (2) 에서 정의한 self.linear 호출.
+        return x
+   
+# 2. Network initiate  
+net = Net() # net 생성.
+# 여기서부터 additional info.
+params = list(net.parameters()) # net에 포함된 parameter 들 보여줌.
+
+
+inputs = torch.randn(1, 10)  # input 이 10행 1열.
+target = torch.randn(5)      # a dummy target, for example
+target = target.view(1, -1)  # make it the same shape as output --> 5행 1열의 output 생성.
+
+# 3. Criterian = Loss function 정의.
+criterion = nn.MSELoss()
+
+# 4. Optimizer 정의.
+optimizer = optim.SGD(net.parameters(), lr=0.01)
+
+# 5. in your training loop:
+optimizer.zero_grad()   # zero the gradient buffers, training 시 gradient buffer 를 항상 zero-grad로 해주지 않으면 gradient 가 stacking 된다.
+output = net(inputs)
+loss = criterion(output, target)
+loss.backward()
+optimizer.step()    # Does the update   
