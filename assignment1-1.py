@@ -327,3 +327,16 @@ except Exception as e:
 
 statinfo = os.stat(pickle_file)
 print('Compressed pickle size:', statinfo.st_size)
+
+# 13. 문제.
+"""
+Problem
+Let's get an idea of what an off-the-shelf classifier can give you on this data. 
+It's always good to check that there is something to learn, 
+and that it's a problem that is not so trivial that a canned solution solves it.
+Train a simple model on this data using  100, 500, 2500, 𝑎𝑛𝑑 10000 training samples. 
+
+Hint: Use LogisticRegression model from sklearn.linear_model. 
+You do not need to care about FutureWarning in sklearn.
+
+Evaluation: Demonstration of training results from different sizes of dataset with test data.
