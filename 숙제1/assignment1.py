@@ -13,7 +13,6 @@ from sklearn.linear_model import LogisticRegression
 from six.moves.urllib.request import urlretrieve
 from six.moves import cPickle as pickle
 
-# Config the matplotlib backend as plotting inline in IPython
 %matplotlib inline # notebook 상에서 도표, 그림등을 바로 확인하기 위함.
 
 # ===============================================================
@@ -21,14 +20,16 @@ from six.moves import cPickle as pickle
 
 url = 'https://commondatastorage.googleapis.com/books1000/'
 last_percent_reported = None
-data_root = './data' # Change me to store data elsewhere
+data_root = './data'   # 데이터 저장할 곳 위치
 
 if not os.path.exists(data_root):
     os.makedirs(data_root)
 
 def download_progress_hook(count, blockSize, totalSize):
-    """A hook to report the progress of a download. This is mostly intended for users with
-    slow internet connections. Reports every 5% change in download progress.
+    """
+    A hook to report the progress of a download. 
+    This is mostly intended for users with slow internet connections. 
+    Reports every 5% change in download progress.
     """
     global last_percent_reported
     percent = int(count * blockSize * 100 / totalSize)
