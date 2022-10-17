@@ -62,7 +62,7 @@ train_filename = maybe_download('notMNIST_large.tar.gz', 247336696) # ./data/not
 test_filename = maybe_download('notMNIST_small.tar.gz', 8458043)    # ./data/notMNIST_small.tar.gz 으로 저장.
 
 # ===============================================================
-# 2. tar.gz 을 extract 하고, extract 된 폴더 경로를 저장.
+# 3. tar.gz 을 extract 하고, extract 된 폴더 경로를 저장.
 num_classes = 10
 np.random.seed(0)
 
@@ -94,5 +94,162 @@ test_folders = maybe_extract(test_filename)
 #  './data/notMNIST_small/D', './data/notMNIST_small/E', './data/notMNIST_small/F', 
 #  './data/notMNIST_small/G', './data/notMNIST_small/H', './data/notMNIST_small/I', './data/notMNIST_small/J']
 
+# ===============================================================
+# 4. notebook 상에서 파일을 visualize 해서 확인 가능.
 
+from IPython.display import Image, display
+display(Image(filename= os.path.abspath('data/notMNIST_large/A/ZXVyb2Z1cmVuY2UgYm9sZGl0YWxpYy50dGY=.png')))
 
+# ===============================================================
+# 5. 각 data 들을 pickle 형태로 저장한다.
+
+image_size = 28  # Pixel width and height.
+pixel_depth = 255.0  # Number of levels per pixel.
+
+def load_letter(folder, min_num_images):
+    """Load the data for a single letter label."""
+    image_files = os.listdir(folder)
+    dataset = np.ndarray(shape=(len(image_files), image_size, image_size),
+                         dtype=np.float32)
+    print(folder)
+    num_images = 0
+    for image in image_files:
+        image_file = os.path.join(folder, image)
+        try:            
+            image_data = (plt.imread(image_file, 0).astype(float) - 
+                        pixel_depth / 2) / pixel_depth
+            if image_data.shape != (image_size, image_size):
+                raise Exception(f'Unexpected image shape: {str(image_data.shape)}')
+            dataset[num_images, :, :] = image_data
+            num_images = num_images + 1
+        except IOError as e:
+            print('Could not read:', image_file, ':', e, '- it\'s ok, skipping.')
+
+    dataset = dataset[0:num_images, :, :]
+    if num_images < min_num_images:
+        raise Exception(f'Many fewer images than expected: {num_images} < {min_num_images}')
+
+    print('Full dataset tensor:', dataset.shape)
+    print('Mean:', np.mean(dataset))
+    print('Standard deviation:', np.std(dataset))
+    return dataset
+        
+def maybe_pickle(data_folders, min_num_images_per_class, force=False):
+    dataset_names = []
+    for folder in data_folders:
+        set_filename = folder + '.pickle'
+        dataset_names.append(set_filename)
+        if os.path.exists(set_filename) and not force:
+          # You may override by setting force=True.
+          print(f'{set_filename} already present - Skipping pickling.')
+        else:
+            print(f'Pickling {set_filename}.')
+            dataset = load_letter(folder, min_num_images_per_class)
+            try:
+                with open(set_filename, 'wb') as f:
+                    pickle.dump(dataset, f, pickle.HIGHEST_PROTOCOL)
+            except Exception as e:
+                print('Unable to save data to', set_filename, ':', e)
+
+    return dataset_names
+
+train_datasets = maybe_pickle(train_folders, 45000) # picke 형태로 data 저장.
+test_datasets = maybe_pickle(test_folders, 1800)
+
+# ===============================================================
+# 6. pickle 형태로 저장된 data 를 불러와서 visualize 한다.
+
+# Let's verify that the data still looks good. Displaying a sample of the labels and images from the ndarray.
+file = open(train_datasets[0], "rb")
+images = pickle.load(file)
+file.close()
+
+fig, axes = plt.subplots(3, 3)
+fig.subplots_adjust(hspace=0.3, wspace=0.3)
+for i, ax in enumerate(axes.flat):
+        # Plot image.
+    ax.imshow(images[i].reshape([28, 28]), cmap='binary')               
+        
+        # Remove ticks from the plot.
+    ax.set_xticks([])
+    ax.set_yticks([])
+        
+    # Ensure the plot is shown correctly with multiple plots
+    # in a single Notebook cell.
+plt.show()
+
+# ===============================================================
+# 7. pickle 형태로 저장된 data 를 불러와서, 파일 정보 확인하기.
+
+# Another check: we expect the data to be balanced across classes. Verify that if the number of samples across classes are balanced.
+for data in train_datasets:
+    file = open(data, "rb")
+    images = pickle.load(file)
+    print('file : ', file, 'number of samples : ', images.shape[0])
+    file.close()
+    
+# ===============================================================
+# 8. pickle 형태로 저장된 data 를 불러와서, 파일 정보 확인하기.
+
+""" Generate train, test, validation sets
+Merge and prune(제거하다/가지치다) the training data as needed. 
+
+Depending on your computer setup, you might not be able to fit it all in memory, 
+and you can tune train_size as needed. 
+
+The labels will be stored into a separate array of integers 0 through 9.
+Also create a validation dataset for hyperparameter tuning."""
+
+def make_arrays(nb_rows, img_size):
+    if nb_rows:
+        dataset = np.ndarray((nb_rows, img_size, img_size), dtype=np.float32)
+        labels = np.ndarray(nb_rows, dtype=np.int32)
+    else:
+        dataset, labels = None, None
+    return dataset, labels
+
+def merge_datasets(pickle_files, train_size, valid_size=0):
+    num_classes = len(pickle_files)
+    valid_dataset, valid_labels = make_arrays(valid_size, image_size)
+    train_dataset, train_labels = make_arrays(train_size, image_size)
+    vsize_per_class = valid_size // num_classes
+    tsize_per_class = train_size // num_classes
+
+    start_v, start_t = 0, 0
+    end_v, end_t = vsize_per_class, tsize_per_class
+    end_l = vsize_per_class+tsize_per_class
+    for label, pickle_file in enumerate(pickle_files):       
+        try:
+            with open(pickle_file, 'rb') as f:
+                letter_set = pickle.load(f)
+                # let's shuffle the letters to have random validation and training set
+                np.random.shuffle(letter_set)
+                if valid_dataset is not None:
+                    valid_letter = letter_set[:vsize_per_class, :, :]
+                    valid_dataset[start_v:end_v, :, :] = valid_letter
+                    valid_labels[start_v:end_v] = label
+                    start_v += vsize_per_class
+                    end_v += vsize_per_class
+
+                train_letter = letter_set[vsize_per_class:end_l, :, :]
+                train_dataset[start_t:end_t, :, :] = train_letter
+                train_labels[start_t:end_t] = label
+                start_t += tsize_per_class
+                end_t += tsize_per_class
+        except Exception as e:
+            print('Unable to process data from', pickle_file, ':', e)
+            raise
+
+    return valid_dataset, valid_labels, train_dataset, train_labels
+
+            
+train_size = 200000
+valid_size = 10000
+test_size = 10000
+
+valid_dataset, valid_labels, train_dataset, train_labels = merge_datasets(train_datasets, train_size, valid_size)
+_, _, test_dataset, test_labels = merge_datasets(test_datasets, test_size)
+
+print('Training:', train_dataset.shape, train_labels.shape)
+print('Validation:', valid_dataset.shape, valid_labels.shape)
+print('Testing:', test_dataset.shape, test_labels.shape)
