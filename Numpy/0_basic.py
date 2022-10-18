@@ -153,8 +153,31 @@ d = a[0]  # 그냥 indexing 하면 차원 감소.
 print(d) # [1 2 3 4]
 print(a.shape, d.shape)
 
+# example
+a = np.array([[1,2,3,4], [5,6,7,8], [9,10,11,12]])
+[[ 1  2  3  4]
+ [ 5  6  7  8]
+ [ 9 10 11 12]]
 
+row_r1 = a[1, :]    # Rank 1 view of the second row of a   [5  6  7  8]
+row_r3 = a[[1], :]  # Rank 2 view of the second row of a   [[ 5  6  7  8]]
+row_r2 = a[1:2, :]  # Rank 2 view of the second row of a   [[ 5  6  7  8]]
 
+# 즉 a[1:2] 와 a[[1]] 은 같은 표현. 
+# index 위치에 : 또는 [] 가 있으면 차원이 유지된다고 보면 된다.
+
+row_r1 = a[1, :]    # Rank 1 view of the second row of a   [ 5  6  7  8]
+row_r2 = a[1:3, :]  # Rank 2 view of the second row of a   [ [ 5  6  7  8]]
+row_r3 = a[[1,2], :]  # Rank 2 view of the second row of a
+print(row_r1, row_r1.shape) 
+print(row_r2, row_r2.shape)
+print(row_r3, row_r3.shape)
+
+[5 6 7 8] (4,)
+[[ 5  6  7  8]
+ [ 9 10 11 12]] (2, 4)
+[[ 5  6  7  8]
+ [ 9 10 11 12]] (2, 4)
 
 
 
