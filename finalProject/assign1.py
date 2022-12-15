@@ -1,3 +1,38 @@
+#0. model
+epochs = 10
+log_step = 1000
+
+def accuracy(logits, labels):
+    logits = logits.cpu().detach().numpy()
+    labels = labels.cpu().detach().numpy()
+    
+    return (100.0 * np.sum(np.equal(np.argmax(logits, 1), labels)) / logits.shape[0])
+
+# train_model
+def train(model, train_loader, optimizer, criterion, epoch, device):
+    model.train()
+    for idx, data in enumerate(train_loader):
+        images_flatten, labels = data[0].to(device), data[1].long().to(device)
+        logits = model(images_flatten)
+
+        optimizer.zero_grad()
+        loss = criterion(logits, labels)
+        loss.backward()
+        optimizer.step()
+
+        if (idx % log_step) == log_step-1:
+            print(f'epoch: {epoch+1} [{idx + 1} / {len(train_loader)}]\t train_loss: {loss.item():.3f}\t train_accuracy: {accuracy(logits, labels):.1f}')
+
+# evaluate model
+def evaluate(model, test_loader, device):
+    model.eval()
+    with torch.no_grad():
+        for _, data in enumerate(test_loader):
+            test_images_flatten, test_labels = data[0].to(device), data[1].to(device)
+            test_logits = model(test_images_flatten)
+
+        print(f'accuracy: {accuracy(test_logits, test_labels):.1f}\n')
+    
 #1.
 model_layer = nn.Sequential(
             # neural network using nn.Linear
