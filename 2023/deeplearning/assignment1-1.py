@@ -57,8 +57,6 @@ def maybe_download(filename, expected_bytes, force=False):
           'Failed to verify ' + dest_filename + '. Can you get to it with a browser?')
     return dest_filename
 
-
-
 def maybe_extract(filename, force=False):
     root = os.path.splitext(os.path.splitext(filename)[0])[0]  # remove .tar.gz
     if os.path.isdir(root) and not force:
@@ -124,7 +122,6 @@ def maybe_pickle(data_folders, min_num_images_per_class, force=False):
                 print('Unable to save data to', set_filename, ':', e)
 
     return dataset_names
-
   
 def make_arrays(nb_rows, img_size):
     if nb_rows:
@@ -167,6 +164,7 @@ def merge_datasets(pickle_files, train_size, valid_size=0):
             raise
 
     return valid_dataset, valid_labels, train_dataset, train_labels
+
 #1. 데이터 다운로드  
 url = 'https://commondatastorage.googleapis.com/books1000/'
 last_percent_reported = None
@@ -200,10 +198,10 @@ file.close()
 fig, axes = plt.subplots(3, 3)
 fig.subplots_adjust(hspace=0.3, wspace=0.3)
 for i, ax in enumerate(axes.flat):
-        # Plot image.
+    # Plot image.
     ax.imshow(images[i].reshape([28, 28]), cmap='binary')               
         
-        # Remove ticks from the plot.
+    # Remove ticks from the plot.
     ax.set_xticks([])
     ax.set_yticks([])
         
@@ -236,6 +234,7 @@ def randomize(dataset, labels):
     shuffled_dataset = dataset[permutation,:,:]
     shuffled_labels = labels[permutation]
     return shuffled_dataset, shuffled_labels
+
 train_dataset, train_labels = randomize(train_dataset, train_labels)
 test_dataset, test_labels = randomize(test_dataset, test_labels)
 valid_dataset, valid_labels = randomize(valid_dataset, valid_labels)
@@ -246,10 +245,10 @@ images = train_dataset
 fig, axes = plt.subplots(3, 3)
 fig.subplots_adjust(hspace=0.3, wspace=0.3)
 for i, ax in enumerate(axes.flat):
-        # Plot image.
+    # Plot image.
     ax.imshow(images[i].reshape([28, 28]), cmap='binary')               
         
-        # Remove ticks from the plot.
+    # Remove ticks from the plot.
     ax.set_xticks([])
     ax.set_yticks([])
         
@@ -291,3 +290,25 @@ Hint: Use LogisticRegression model from sklearn.linear_model.
 You do not need to care about FutureWarning in sklearn.
 Evaluation: Demonstration of training results from different sizes of dataset with test data
 """
+
+from sklearn.linear_model import LogisticRegression
+
+#pickle_file = data_root + "/" + 'notMNIST.pickle'
+with open(pickle_file, 'rb') as f:
+    dataDict = pickle.load(f)
+    train_dataset = dataDict['train_dataset']
+    train_labels = dataDict['train_labels']
+    test_dataset = dataDict['test_dataset']
+    test_labels = dataDict['test_labels']
+
+train_sizes = [100, 500, 2500, 10000]
+test_size = 10000
+
+for train_size in train_sizes:
+    train_feature = train_dataset[0:train_size].reshape(train_size, -1)
+    train_label = train_labels[0:train_size]
+    test_feature = test_dataset[0:test_size].reshape(test_size, -1) 
+    test_label = test_labels[0:test_size]
+    model = LogisticRegression(max_iter=1000)
+    model.fit(train_feature, train_label)
+    print(f'{train_size} samples accuracy: {model.score(test_feature, test_label)}')
